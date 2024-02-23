@@ -6,7 +6,6 @@ rm( list = ls())
 #loading the package
 library(tidyverse)
 library(dplyr)
-library(ggplot2)
 library(fpp2)
 library(glmnet)
 library(tidyr)
@@ -17,12 +16,8 @@ library(readr)
 library(ggfortify)
 library(tseries)
 library(urca)
-library(cansim)
-library(OECD)
-library(WDI)
-library(fredr)
 library(readxl)
-library(lubridate)
+library( lubridate)
 library(tsbox)
 library(RColorBrewer)
 library(wesanderson)
@@ -43,7 +38,7 @@ library(car)
 #0.1 finished the first round of linear regression model
 #0.2 add the age specif part for the linear regression
 #0.3 add the data examing part
-#0.4 add the 
+#0.4 start the final process
 
 ##################
 
@@ -69,7 +64,7 @@ print(colSums(is.na(Titanic_train_raw )))
 
 
 #check the age of average by the survive or not 
-Titanic_train_raw %>% group_by(Survived) %>% summarise(mean(Age, na.rm = TRUE)) 
+mean_age_by_survival <- aggregate(Age ~ Survived, data = Titanic_train_raw, FUN = function(x) mean(x, na.rm = TRUE))
 
 #calcuate the average of all the age 
 The_average_age <- mean(Titanic_train_raw$Age, na.rm = TRUE)
@@ -103,67 +98,58 @@ TTD<- dummy_cols(Titanic_train_cleaned, select_columns = "Sex", remove_selected_
 
 ######################
 #step two: check the data#####
-#1.using the scatterplot matrix to check the possible pattern
-ggpairs(TTD_) #its seem normal? 
-
-#2.draw the histogram distribution of the feature
-par(mfrow = c(4, 2), mar = c(4, 4, 2, 1))
+par(mfrow = c(3, 2))
 
 #the grpahy per class
-barplot(table(TTD_$Survived, TTD_$Pclass), beside = TRUE, 
+barplot(table(TTD$Survived, TTD$Pclass), beside = TRUE, 
         main = "Survived by Pclass", xlab = "Pclass", ylab = "Count")
-legend("center", legend = c("0: Died", "1: Survived"), fill = c("black", "white"))
+legend("top", legend = c("0: Died", "1: Survived"), fill = c("black", "white"))
 
 
 # Age Boxplot
-boxplot(Age ~ Survived, data = TTD_, 
+boxplot(Age ~ Survived, data = TTD, 
         col = c("orange", "gray"), 
-        main = "Age vs Survived", 
+        main = "Survived by Age", 
         xlab = "Survived", ylab = "Age")
 legend("top", legend = c("0: Died", "1: Survived"), fill = c("orange", "gray"))
 
 
 # SibSp
-survival_table_sibsp <- table(TTD_$Survived, TTD_$SibSp)
+survival_table_sibsp <- table(TTD$Survived, TTD$SibSp)
 barplot(survival_table_sibsp, beside = TRUE, col = c("black", "gray"), 
         main = "Survived by SibSp", xlab = "SibSp", ylab = "Count")
 legend("topright", legend = c("0: Died", "1: Survived"), fill = c("black", "gray"))
 
 
 # The parch
-stripchart(Parch ~ Survived, data = TTD_, vertical = TRUE, method = "jitter", 
+stripchart(Parch ~ Survived, data = TTD, vertical = TRUE, method = "jitter", 
            pch = 20, col = c("black", "gray"),
-           main = "Stripchart of Parch by Survival",
+           main = " Survived by parch",
            xlab = "Survived", ylab = "Parch")
+legend("top", legend = c("0: Died", "1: Survived"), fill = c("black", "gray"))
 
 # The fare(The price of ticket)
-boxplot(Fare ~ Survived, data = TTD_, 
+boxplot(Fare ~ Survived, data = TTD, 
         col = c("orange", "gray"), 
-        main = "Boxplot of Fare by Survival",
+        main = "Survived by Fare",
         xlab = "Survived", ylab = "Fare")
-legend("top", legend = c("0: Died", "1: Survived"), fill = c("orange", "gray"))
+legend("top", legend = c("0: Died", "1: Survived"), fill = c("black", "gray"))
+
+#The sex
+
+female_table <- table(TTD$Sex_female, TTD$Survived)
+
+barplot(female_table, beside = TRUE, col = c("black", "gray"),
+        main = "Survived by Sex", xlab = "Sex", ylab = "Count",
+        names.arg = c("Male", "Female"),
+        legend = TRUE)
+legend("topright", legend = c("Died", "Survived"), fill = c("black", "gray"))
 
 
-# The embarked.
-# The S (Southampton) is where the majorty people board the shit
-embarked_table <- table(TTD_$Survived, TTD_$Embarked)
-barplot(embarked_table, beside = TRUE, col = c("black", "gray"), 
-        main = "Survived by Embarked", xlab = "Embarked", ylab = "Count",
-        legend = rownames(embarked_table))
-
-
-# Enhanced plotting
-barplot(female_survived_table, beside = TRUE, col = c("black", "gray"), 
-        main = "Survival by Gender", xlab = "Gender", ylab = "Count",
-        names.arg = c("Died", "Survived"),
-        legend.text = c("Male", "Female"),
-        args.legend = list(title = "Gender", x = "topright", fill = c("black", "gray")))
-
-
-######## The white test section
+######## Test of the heteroscedasticity.
 
 #crate a new matrix 
-x <- TTD_%>%
+x <- TTD%>%
   dplyr::select(
     Pclass, Age, SibSp, Parch, Fare, Embarked, Sex_female
   ) %>%
@@ -175,22 +161,22 @@ live <- TTD$Survived
 #put two things together as data frame
 data2 <- data.frame(x, live)
 
-#using regression to search all the possible output
+#The BP test
 data_test_1 <- lm(live ~ . , data = data2)
 bptest(data_test_1)
 
-#since 0.1944 is greater than 0.05, you would not reject the null hypothesis based 
-#on this test. This means there isn't statistically significant evidence of heteroskedasticity 
-#in your regression model's residuals, according to the Breusch-Pagan test at the conventional
-#alpha level of 0.05
+#Since the p value is 0.19 which is greater than 0.05, 
+#we fail to reject the null hypothesis. we state that there is not enough statisticallty significant 
+#evidence of heteroskedasticity exist in the data set.
 
 
-####### The multicollinearity 
+
+####### The Multicollinearity
 vif(data_test_1)
-#A VIF value of 1 indicates no correlation between a given predictor and any other predictors in the model.
-#VIF values between 1 and 5 suggest moderate correlation, but they are often not of concern.
-#all of the VIF valuea re below the commonly used threshould of 5 to 10 . which suggest
-#multicollinearity is not a significant concern
+#All the VIF values for the variable are between 1 and 1.6. This indicates that 
+#the training data show moderate correlation, which is common for real-life examples, and will not raise a red flag.
+
+
 ######################
 
 
@@ -200,38 +186,34 @@ vif(data_test_1)
 ######################
 ######################
 #Step two: Sharking method
-  #Ridge regression
+  #best subset selection 
   #Lasso regression
 #####################
-
 #using the ridge regession to search all the possible linear combination 
 
-#crate a new matrix 
+#create a new matrix
 x <- TTD %>%
   dplyr::select(
     Pclass, Age, SibSp, Parch, Fare, Embarked, Sex_female
   ) %>%
   data.matrix()
 
-#take out the survive
+#take out the survived data.
 live <- TTD$Survived
 
-#put two things together as data frame
+#The data frame time!
 data2 <- data.frame(x, live)
 
 #using regression to search all the possible output
 regfit_all <- regsubsets(live ~ ., data = data2, nvmax = 10)
 reg_summary <- summary(regfit_all)
 
-# Reset the plotting layout to default
-par(mfrow=c(1,1))
-plot(regfit_all, scale = "bic")
+# ploting the result. 
+plot(regfit_all, scale = "bi ")
 
-
-########## using the sharking method to determind the optimual output for the number of variable
-# Set up plotting area to display three plots in one row
+########## using the sharking method to determined the optimal output for the number of variable
+# 
 par(mfrow=c(1,3))
-
 # Plot RSS
 plot(reg_summary$rss, xlab = "Number of Variables", ylab = "RSS", type = "l")
 
@@ -245,55 +227,44 @@ plot(reg_summary$cp, xlab = "Number of Variables", ylab = "Cp", type = "l")
 m.cp <- which.min(reg_summary$cp) # Find the index of minimum Cp
 points(m.cp, reg_summary$cp[m.cp], col = "red", cex = 2, pch = 20) # Highlight the min point
 
-
- 
-
-
 #####################
 
-#According to the ridge regression, I should choose two group as the following variable
+#According to the best subselection, I should choose two group as the following variable
 # the first group
   #Pclass, Age, sibsp, Sex_female
 # the second group
   #Pclass, Age, sibsp, Embarked, Sex_female 
 
 
-##########The lasso regresson time
-# Fit LASSO model with cross-validation
-lasso.cv <- cv.glmnet(x, live, alpha = 1, nfolds = 5)
+########## The Ridge Regression Time ##########
 
-# Extract LASSO coefficients at the optimal lambda found by cross-validation
-coef_lasso <- as.vector(coef(lasso.cv, s = "lambda.min")[-1])  # Excludes intercept
+# using the cross vaildation to find the optimal lambda
+ridge.cv <- cv.glmnet(x, live, alpha = 0, nfolds = 5)
 
-# Fit OLS model using lm()
+# imput the corss vaildation
+coef_ridge <- as.vector(coef(ridge.cv, s = "lambda.min")[-1]) 
+
+#OLS time
 ols_mod <- lm(live ~ ., data = data2)
-
-# Extract coefficients from the OLS model (excluding intercept for direct comparison)
-coef_ols <- coef(ols_mod)[-1]  # Exclude intercept
-
-# Best subset selection using regsubsets() from the leaps package
-best_subset_selection <- regsubsets(live ~ ., data = data2, nvmax = 10)
-best_subset_coef <- coef(best_subset_selection, id = which.min(summary(best_subset_selection)$bic))
+coef_ols <- coef(ols_mod)[-1]  
 
 # Create a data frame for comparison
-# Since variable names in LASSO and OLS are the same, use those for the row names
 variable_names <- names(coef_ols)
 
-# For best subset selection, extract coefficients including intercept (adjust accordingly if needed)
-coef_bss <- as.vector(best_subset_coef)  # Adjust this line based on how coef_bss is structured
 
-# Initialize a comparison table
-comparison_table <- data.frame(
+#put all the result together.
+performence_table <- data.frame(
   Variable = variable_names,
   OLS = coef_ols,
-  LASSO = coef_lasso
-)
+  Ridge = coef_ridge)
 
-# Display the comparison table
-comparison_table_sorted <- comparison_table[order(-comparison_table$LASSO), ]
+# Display the comparison table sorted by Ridge coefficients
+performence_table_ordered <- performence_table[order(performence_table$Ridge), ]
 
 # Display the sorted comparison table
-print(comparison_table_sorted)
+print(performence_table_ordered)
+
+
 
 #The lasso regression does not sharking enough meanslasso regression found
 #all the variable are actually have some degree of importantence. 
@@ -318,13 +289,15 @@ print(comparison_table_sorted)
 #TTD
 
 # Split the data
-training_indices <- sample(1:nrow(TTD), size = 2/3 * nrow(TTD))
+
+set.seed(123455667)
+training_indices <- sample(1:nrow(TTD), size = 9/10 * nrow(TTD))
 training_data <- TTD[training_indices, ]
 testing_data <- TTD[-training_indices, ]
 
 # Fit OLS models for each group on the training data
-model_group1 <- lm(Survived ~ Pclass + Sex_female + Age + SibSp, data = TTD)
-model_group2 <- lm(Survived ~ Pclass + Sex_female + Age + SibSp + Embarked, data =TTD)
+model_group1 <- lm(Survived ~ Pclass + Sex_female + Age + SibSp, data = training_data)
+model_group2 <- lm(Survived ~ Pclass + Sex_female + Age + SibSp + Embarked, data =training_data)
 
 # Making predictions on the test set for each model group
 predictions_group1 <- predict(model_group1, newdata = testing_data, type = "response")

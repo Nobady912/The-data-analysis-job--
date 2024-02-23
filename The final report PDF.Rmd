@@ -1,0 +1,304 @@
+---
+title: "The report"
+author: "Tie Ma"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r eval=FALSE, include=FALSE}
+#The log
+
+```
+
+Part one: The data evaluation process.
+
+
+```{r setup, include=FALSE}
+# loding the package and some basic setting.
+library(tidyverse)
+library(dplyr)
+library(fpp2)
+library(glmnet)
+library(tidyr)
+library(lmtest)
+library(boot)
+library(forecast)
+library(readr)
+library(ggfortify)
+library(tseries)
+library(urca)
+library(readxl)
+library(lubridate)
+library(tsbox)
+library(RColorBrewer)
+library(wesanderson)
+library(writexl)
+library(gridExtra)
+library(vars)
+library(leaps)
+library(broom)
+library(fastDummies)
+library(car)
+
+#setting the saving addreess
+setwd("/Users/tie/Documents/GitHub/The-data-analysis-job--")
+
+```
+
+
+#At here I skiped their name which does not impact the model training, 
+#their ticket number with is not important and their cabin which has limit number
+``` {r echo=FALSE}
+
+#loding the data
+Titanic_train_raw <- read_csv("Titanic data/train.csv", 
+                                col_types = cols( Name = col_skip(), Ticket = col_skip(), 
+                                                 Cabin = col_skip()))
+```
+
+
+
+
+```{r echo=FALSE}
+#check the number of NA in the data set 
+print(colSums(is.na(Titanic_train_raw )))
+```
+
+  The trainning data missing 177 Age value with 2 Embarked value. Consider the size of the trainning data set are only 881 rows. Remove all the missing Age variable will further reduce avaiable data for the model. Therefore, I decided to using the average age to fill the missing 177 value. However I do need to check the age average between the people who surviied and people does not to aovid introduce the biased the training data set. 
+  
+  
+The average age by survival as following.
+```{r echo=FALSE}
+#the average age between who subdivided and who does not
+mean_age_by_survival <- aggregate(Age ~ Survived, data = Titanic_train_raw, FUN = function(x) mean(x, na.rm = TRUE))
+print(mean_age_by_survival )
+```
+
+The average age of the entire data set 
+
+```{r echo=FALSE}
+#the average age of the entire data set
+The_average_age <- mean(Titanic_train_raw$Age, na.rm = TRUE)
+print(The_average_age)
+```
+
+The average age of the entire training data set are 29.69 which is right in between the average age for people who surivied and who does not. Therefore using the average age will not introduce significant bias toward the training data.
+
+  Further more, After fill all the missing age value, I removed the 2 missing row of the embarked value from the training data set and transfer the "Sex" columns into the dummy variable. It increasing the accuracy of Linear regression model from 76.794% to the 77.033% which also the second highest of all my model only 0.718% less than the regression forest model. 
+
+```{r include=FALSE}
+#replace the missing value with the average 
+Titanic_train_raw$Age[is.na(Titanic_train_raw$Age)] <- The_average_age
+Titanic_train_without_age_gap <- Titanic_train_raw
+
+#delete the 2 line in the embarked 
+Titanic_train <- Titanic_train_without_age_gap[!is.na(Titanic_train_without_age_gap$Embarked), ]
+Titanic_train_cleaned <- na.omit(Titanic_train_without_age_gap)
+
+#transer it into the the tranning data set with dummy vaiaralbe.
+TTD<- dummy_cols(Titanic_train_cleaned, select_columns = "Sex", remove_selected_columns = TRUE)
+
+```
+
+
+
+Step two: check the data. 
+  
+  For a better understanding of the possible patterns in the data and to determine potential variables for the linear regression and logit models, I examined graphs comparing the impact of different variables on passenger survival. From these graphs, we can observe that Passenger Class (Pclass), SibSp, and gender significantly influence the survival of passengers. Furthermore, the fare, representing the ticket price, shows that passengers who paid higher fares were more likely to survive. This observation aligns with the conclusion drawn from the Passenger Class graphs. 
+Furthermore, the rest of the variables do not provide a visible impact on survival according to the analysis.
+  
+```{r echo=FALSE, fig.height=6, fig.width=8}
+
+par(mfrow = c(3, 2))
+
+#the grpahy per class
+barplot(table(TTD$Survived, TTD$Pclass), beside = TRUE, 
+        main = "Survived by Pclass", xlab = "Pclass", ylab = "Count")
+legend("top", legend = c("0: Died", "1: Survived"), fill = c("black", "white"))
+
+
+# Age Boxplot
+boxplot(Age ~ Survived, data = TTD, 
+        col = c("orange", "gray"), 
+        main = "Survived by Age", 
+        xlab = "Survived", ylab = "Age")
+legend("top", legend = c("0: Died", "1: Survived"), fill = c("orange", "gray"))
+
+
+# SibSp
+survival_table_sibsp <- table(TTD$Survived, TTD$SibSp)
+barplot(survival_table_sibsp, beside = TRUE, col = c("black", "gray"), 
+        main = "Survived by SibSp", xlab = "SibSp", ylab = "Count")
+legend("topright", legend = c("0: Died", "1: Survived"), fill = c("black", "gray"))
+
+
+# The parch
+stripchart(Parch ~ Survived, data = TTD, vertical = TRUE, method = "jitter", 
+           pch = 20, col = c("black", "gray"),
+           main = " Survived by parch",
+           xlab = "Survived", ylab = "Parch")
+legend("top", legend = c("0: Died", "1: Survived"), fill = c("black", "gray"))
+
+# The fare(The price of ticket)
+boxplot(Fare ~ Survived, data = TTD, 
+        col = c("orange", "gray"), 
+        main = "Survived by Fare",
+        xlab = "Survived", ylab = "Fare")
+legend("top", legend = c("0: Died", "1: Survived"), fill = c("black", "gray"))
+
+#The sex
+
+female_table <- table(TTD$Sex_female, TTD$Survived)
+
+barplot(female_table, beside = TRUE, col = c("black", "gray"),
+        main = "Survived by Sex", xlab = "Sex", ylab = "Count",
+        names.arg = c("Male", "Female"),
+        legend = F)
+legend("top", legend = c("Died", "Survived"), fill = c("black", "gray"))
+
+
+
+```
+
+  For better perform of the linear regression, I check the heteroscedasticity and the Multicollinearity of the training data set.
+  
+  
+  For heteroscedasticity test, I am using BP test.
+```{r echo=FALSE}
+  #crate a new matrix 
+x <- TTD%>%
+  dplyr::select(
+    Pclass, Age, SibSp, Parch, Fare, Embarked, Sex_female
+  ) %>%
+  data.matrix()
+
+#take out the survive
+live <- TTD$Survived
+
+#put two things together as data frame
+data2 <- data.frame(x, live)
+
+#The BP test
+data_test_1 <- lm(live ~ . , data = data2)
+bptest(data_test_1)
+```
+
+Since the p value is 0.19 which is greater than 0.05, we fail to reject the null hypothesis. we state that there is not enough statisticallty significant evidence of heteroskedasticity exist in the data set.
+
+
+  For the Multicollinearity, I am using the VIF test.
+```{R echo=FALSE}
+vif(data_test_1)
+```
+
+All the VIF values for the variable are between 1 and 1.6. This indicates that the training data show moderate correlation, which is common for real-life examples, and will not raise a red flag.
+
+
+
+Step Three: choose the variable. 
+
+In order to select the optimal variable for constructing the linear regression model without risking overfitting, I will use the best subset selection and Ridge regression to explore all possible linear combinations of variables
+
+
+First, I will using the best subset selection to search all the possible combination and compare their BIC vlaue
+
+```{r echo=FALSE}
+#create a new matrix
+x <- TTD %>%
+  dplyr::select(
+    Pclass, Age, SibSp, Parch, Fare, Embarked, Sex_female
+  ) %>%
+  data.matrix()
+
+#take out the survived data.
+live <- TTD$Survived
+
+#The data frame time!
+data2 <- data.frame(x, live)
+
+#using regression to search all the possible output
+regfit_all <- regsubsets(live ~ ., data = data2, nvmax = 10)
+reg_summary <- summary(regfit_all)
+
+# ploting the result. 
+plot(regfit_all, scale = "bic")
+```
+
+From the graph, we can see that the combination of Pclass, Age, SibSp, and sex_female has the lowest BIC, which means this model is likely the most efficient among the tested combinations in terms of balancing model complexity and goodness of fit.
+
+Next, we determine the number of variable.
+
+```{r echo=FALSE}
+
+par(mfrow=c(1,3))
+
+# Plot RSS
+plot(reg_summary$rss, xlab = "Number of Variables", ylab = "RSS", type = "l")
+
+# Plot BIC with highlighted minimum point
+plot(reg_summary$bic, xlab = "Number of Variables", ylab = "BIC", type = "l")
+m.bic <- which.min(reg_summary$bic) # Find the index of minimum BIC
+points(m.bic, reg_summary$bic[m.bic], col = "red", cex = 2, pch = 20) # Highlight the min point
+
+# Plot Cp with highlighted minimum point
+plot(reg_summary$cp, xlab = "Number of Variables", ylab = "Cp", type = "l")
+m.cp <- which.min(reg_summary$cp) # Find the index of minimum Cp
+points(m.cp, reg_summary$cp[m.cp], col = "red", cex = 2, pch = 20) # Highlight the min point
+
+```
+
+The BIC graphy suggest with the four variable will reach the lowest BIC same as the early grpahy point out. As CP(AIC) graph suggest that the optimal variable number is 5. 
+
+
+
+According to the best subset selection, I should choose the two group with the following variables. 
+  
+- The first group includes:
+    -   Pclass, Age, SibSp, Sex_female
+- The second group includes:
+     -  Pclass, Age, SibSp, Embarked, Sex_female"
+
+
+
+Now, let's proform the Ridge regression.
+```{r echo=FALSE}
+########## The Ridge Regression Time ##########
+
+# using the cross vaildation to find the optimal lambda
+ridge.cv <- cv.glmnet(x, live, alpha = 0, nfolds = 5)
+
+# imput the corss vaildation
+coef_ridge <- as.vector(coef(ridge.cv, s = "lambda.min")[-1]) 
+
+#OLS time
+ols_mod <- lm(live ~ ., data = data2)
+coef_ols <- coef(ols_mod)[-1]  
+
+# Create a data frame for comparison
+variable_names <- names(coef_ols)
+
+
+#put all the result together.
+performence_table <- data.frame(
+  Variable = variable_names,
+  OLS = coef_ols,
+  Ridge = coef_ridge)
+
+# Display the comparison table sorted by Ridge coefficients
+performence_table_ordered <- performence_table[order(performence_table$Ridge), ]
+
+# Display the sorted comparison table
+print(performence_table_ordered)
+
+
+```
+
+
+Notably, the coefficient for the variable "Sex_female" remains relatively high in both OLS and Ridge regression, suggesting a strong relationship with the dependent variable. The coefficients of Pclass, SibSp, Embarked, and Parch follow this trend.
+
+
+
+
+
