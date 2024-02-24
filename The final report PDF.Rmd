@@ -1,21 +1,28 @@
 ---
-title: "The report"
+title: "The Titanic Data Analysis"
 author: "Tie Ma"
 date: "`r Sys.Date()`"
 output:
   pdf_document: default
-  html_document: default
 ---
 
-```{r eval=FALSE, include=FALSE}
-#The log
 
-```
+In this assignment, I have chosen to employ linear regression, logistic regression, and regression tree models to delve into the relatively compact Titanic dataset, which consists of 11 variables, albeit only 8 are applicable. The dataset's constrained size somewhat limits the effectiveness of principal components or lasso/double lasso models, which excel when tasked with condensing variable sets and boosting model efficacy due to their prowess in reducing dimensionality and selecting relevant features.
 
-Part one: The data evaluation process.
+My preference for the linear regression model stems from it being the mode I have been trained in and studied for a long time. Logistic regression is selected due to its superior performance with binary outputs, particularly for predicting survival on the Titanic. For machine learning and to capture the non-linear relationships among the variables, I chose the regression tree model.
 
+According to my analysis, performance metrics from Kaggle indicate a close match between linear and logistic regression at 0.77033, with the regression tree model slightly outperforming them at 0.777051, enhancing accuracy by a mere 0.00718.
 
+The regression tree model has the best Kaggle score because it can capture non-linear relationships. Linear and logistic regression models are both constructed based on the assumption of linearity between the dependent and independent variables. Such an assumption may not hold true in real-world scenarios. In contrast, the regression tree does not assume linear dependence. It searches for the best path through the data that leads to the most similar outcomes within a leaf at the end of the path.
+
+The first part includes data cleaning, checking, and variable selection using the best subset and Ridge regression, and compares the performance and Kaggle scores for two different variable sets using logistic regression and linear regression. The outcomes are identical due to the small, marginally better performance difference between logistic regression and linear regression, which does not significantly impact the final outcome. However, the best-performing model is logistic regression with the following variables: Pclass + Sex_female + Age + SibSp + Embarked.
+
+The second part of this assignment involves using a regression tree model. I first used 10-fold cross-validation to determine the optimal settings for mtry, and then generated the regression tree model.
+
+## Part one: The data evaluation process.
 ```{r setup, include=FALSE}
+
+rm( list = ls())
 # loding the package and some basic setting.
 library(tidyverse)
 library(dplyr)
@@ -47,9 +54,9 @@ setwd("/Users/tie/Documents/GitHub/The-data-analysis-job--")
 
 ```
 
+  I removed the name, ticket number, and cabin number during the data import process because the name and ticket number are not important for training the data, and only a few cabin numbers will not aid in training the modes
 
-#At here I skiped their name which does not impact the model training, 
-#their ticket number with is not important and their cabin which has limit number
+
 ``` {r echo=FALSE}
 
 #loding the data
@@ -58,35 +65,33 @@ Titanic_train_raw <- read_csv("Titanic data/train.csv",
                                                  Cabin = col_skip()))
 ```
 
-
-
-
 ```{r echo=FALSE}
 #check the number of NA in the data set 
 print(colSums(is.na(Titanic_train_raw )))
 ```
 
-  The trainning data missing 177 Age value with 2 Embarked value. Consider the size of the trainning data set are only 881 rows. Remove all the missing Age variable will further reduce avaiable data for the model. Therefore, I decided to using the average age to fill the missing 177 value. However I do need to check the age average between the people who surviied and people does not to aovid introduce the biased the training data set. 
+ The training data is missing 177 Age values and 2 Embarked values. Considering the size of the training dataset is only 881 rows, removing all the missing Age variables would further reduce the available data for the model. Therefore, I decided to use the average age to fill the missing 177 values. However, I do need to check the average age between the people who survived and those who did not to avoid introducing bias into the training dataset.
   
   
-The average age by survival as following.
+The average age by Survived as following.
 ```{r echo=FALSE}
 #the average age between who subdivided and who does not
 mean_age_by_survival <- aggregate(Age ~ Survived, data = Titanic_train_raw, FUN = function(x) mean(x, na.rm = TRUE))
 print(mean_age_by_survival )
 ```
 
-The average age of the entire data set 
 
+The average age of the entire data set 
 ```{r echo=FALSE}
 #the average age of the entire data set
 The_average_age <- mean(Titanic_train_raw$Age, na.rm = TRUE)
 print(The_average_age)
 ```
 
-The average age of the entire training data set are 29.69 which is right in between the average age for people who surivied and who does not. Therefore using the average age will not introduce significant bias toward the training data.
+The average age of the entire training data set are 29.69 which is right in between the average age for people who survived and died. Therefore using the average age will not introduce significant bias toward the training data.
 
-  Further more, After fill all the missing age value, I removed the 2 missing row of the embarked value from the training data set and transfer the "Sex" columns into the dummy variable. It increasing the accuracy of Linear regression model from 76.794% to the 77.033% which also the second highest of all my model only 0.718% less than the regression forest model. 
+Furthermore, after filling in all the missing age values, I removed the 2 missing rows of the Embarked value from the training dataset and transformed the 'Sex' column into a dummy variable. This transformation was necessary because machine learning models require numerical input, and converting 'Sex' into a dummy variable.
+. 
 
 ```{r include=FALSE}
 #replace the missing value with the average 
@@ -94,7 +99,6 @@ Titanic_train_raw$Age[is.na(Titanic_train_raw$Age)] <- The_average_age
 Titanic_train_without_age_gap <- Titanic_train_raw
 
 #delete the 2 line in the embarked 
-Titanic_train <- Titanic_train_without_age_gap[!is.na(Titanic_train_without_age_gap$Embarked), ]
 Titanic_train_cleaned <- na.omit(Titanic_train_without_age_gap)
 
 #transer it into the the tranning data set with dummy vaiaralbe.
@@ -103,10 +107,10 @@ TTD<- dummy_cols(Titanic_train_cleaned, select_columns = "Sex", remove_selected_
 ```
 
 
-
-Step two: check the data. 
+## Step two: Check The Data. 
   
   For a better understanding of the possible patterns in the data and to determine potential variables for the linear regression and logit models, I examined graphs comparing the impact of different variables on passenger survival. From these graphs, we can observe that Passenger Class (Pclass), SibSp, and gender significantly influence the survival of passengers. Furthermore, the fare, representing the ticket price, shows that passengers who paid higher fares were more likely to survive. This observation aligns with the conclusion drawn from the Passenger Class graphs. 
+  
 Furthermore, the rest of the variables do not provide a visible impact on survival according to the analysis.
   
 ```{r echo=FALSE, fig.height=6, fig.width=8}
@@ -154,18 +158,17 @@ female_table <- table(TTD$Sex_female, TTD$Survived)
 
 barplot(female_table, beside = TRUE, col = c("black", "gray"),
         main = "Survived by Sex", xlab = "Sex", ylab = "Count",
-        names.arg = c("Male", "Female"),
         legend = F)
-legend("top", legend = c("Died", "Survived"), fill = c("black", "gray"))
+legend("center", legend = c("MALE", "Female"), fill = c("black", "gray"))
 
 
 
 ```
 
-  For better perform of the linear regression, I check the heteroscedasticity and the Multicollinearity of the training data set.
+  For better perform of the linear regression, I check the heteroscedasticity and the multicollinearity of the training data set.
   
   
-  For heteroscedasticity test, I am using BP test.
+  For The heteroscedasticity test, I am using BP test.
 ```{r echo=FALSE}
   #crate a new matrix 
 x <- TTD%>%
@@ -185,24 +188,25 @@ data_test_1 <- lm(live ~ . , data = data2)
 bptest(data_test_1)
 ```
 
-Since the p value is 0.19 which is greater than 0.05, we fail to reject the null hypothesis. we state that there is not enough statisticallty significant evidence of heteroskedasticity exist in the data set.
+Since the p value is 0.19 which is greater than 0.05, we fail to reject the null hypothesis. We state that there is not enough statisticallty significant evidence of heteroskedasticity exist in the data set.
 
 
-  For the Multicollinearity, I am using the VIF test.
+  For the multicollinearity, I am using the VIF test.
 ```{R echo=FALSE}
 vif(data_test_1)
 ```
 
-All the VIF values for the variable are between 1 and 1.6. This indicates that the training data show moderate correlation, which is common for real-life examples, and will not raise a red flag.
+All the VIF values for the variable are between 1 and 1.6. This indicates that the training data show moderate correlation which will not impact the model outcome. 
 
 
 
-Step Three: choose the variable. 
 
-In order to select the optimal variable for constructing the linear regression model without risking overfitting, I will use the best subset selection and Ridge regression to explore all possible linear combinations of variables
+## Step Three: Choose The Variable
+
+In order to select the optimal variable for constructing the linear regression model without risking over fitting, I will use the best subset selection and Ridge regression to explore all possible linear combinations of variables
 
 
-First, I will using the best subset selection to search all the possible combination and compare their BIC vlaue
+First, I will using the best subset selection to search all the possible combinations and compare their BIC value.
 
 ```{r echo=FALSE}
 #create a new matrix
@@ -228,7 +232,7 @@ plot(regfit_all, scale = "bic")
 
 From the graph, we can see that the combination of Pclass, Age, SibSp, and sex_female has the lowest BIC, which means this model is likely the most efficient among the tested combinations in terms of balancing model complexity and goodness of fit.
 
-Next, we determine the number of variable.
+Next, we determine the number of variables.
 
 ```{r echo=FALSE}
 
@@ -249,7 +253,7 @@ points(m.cp, reg_summary$cp[m.cp], col = "red", cex = 2, pch = 20) # Highlight t
 
 ```
 
-The BIC graphy suggest with the four variable will reach the lowest BIC same as the early grpahy point out. As CP(AIC) graph suggest that the optimal variable number is 5. 
+The BIC graphy suggest with the four variables will reach the lowest BIC same as the early grpahy point out. As CP(AIC) graph suggest that the optimal variables number is 5. 
 
 
 
@@ -266,15 +270,19 @@ Now, let's proform the Ridge regression.
 ```{r echo=FALSE}
 ########## The Ridge Regression Time ##########
 
-# using the cross vaildation to find the optimal lambda
-ridge.cv <- cv.glmnet(x, live, alpha = 0, nfolds = 5)
+# using the 5 fold cross validation to find the optimal lambda
+ridge.cv <- cv.glmnet(x, live, alpha = 0, nfolds = 5) 
+# alpha = 0 Ridge regression
+# alpha = 1 the lasso regressiom.
 
-# imput the corss vaildation
+# input the cross validation
 coef_ridge <- as.vector(coef(ridge.cv, s = "lambda.min")[-1]) 
 
-#OLS time
-ols_mod <- lm(live ~ ., data = data2)
-coef_ols <- coef(ols_mod)[-1]  
+#doing a linear regressuion and take out the OLS
+ols_mode <- lm(live ~ ., data = data2)
+
+#take everything except the intercept
+coef_ols <- coef(ols_mode)[-1]  
 
 # Create a data frame for comparison
 variable_names <- names(coef_ols)
@@ -286,17 +294,232 @@ performence_table <- data.frame(
   OLS = coef_ols,
   Ridge = coef_ridge)
 
-# Display the comparison table sorted by Ridge coefficients
-performence_table_ordered <- performence_table[order(performence_table$Ridge), ]
+# print the output table.
+print(performence_table)
 
-# Display the sorted comparison table
-print(performence_table_ordered)
+
+```
+
+notably, the coefficients for the variables "Sex_female" and "Pclass" remain relatively high in both OLS and Ridge regression, suggesting a strong relationship with the dependent variable. The coefficients for SibSp, Embarked, and Parch follow this trend. However, Ridge regression only shrinks the coefficients of two variables, "Age" and "Fare," towards zero. Therefore, it does not provide any new model suggestions.
+
+
+## Step Four: Model Comparison and Kaggle Scale
+
+In this step, I divided the training set into two parts: 90% of the data will be used for training, and the remaining 10% will serve as the test set. This division will allow us to calculate the Mean Squared Error, Root Mean Squared Error, and Mean Absolute Error to evaluate the performance of two sets of linear regression and two sets of logistic regression models. And then I combine the Kaggle prediction scale together with the table.
+
+```{R echo=FALSE}
+#3.The model comparsing
+#TTD
+
+#cut the date in the 2 part
+#select 90% for the training
+#select 10% for the testing
+
+#calculate how many row in the TTD data set 
+cut_data<- sample(1:nrow(TTD), size = 9/10* nrow(TTD), replace = FALSE)
+
+#select the 90% of the data set for the training
+training_set <- TTD[cut_data, ]
+#rest of 10% for the test 
+testing_set <- TTD[-cut_data, ]
+
+# Fit the logistic regression model
+model1 <- lm(Survived ~ Pclass + Sex_female + Age + SibSp, data = training_set)
+model2 <- glm(Survived ~ Pclass + Sex_female + Age + SibSp, family = binomial, data = training_set)
+model3 <- lm(Survived ~ Pclass + Sex_female + Age + SibSp + Embarked, data = training_set)
+model4 <- glm(Survived ~ Pclass + Sex_female + Age + SibSp + Embarked, family = binomial, data = training_set)
+
+
+# Making predictions on the test set for each model
+model1_pred <- predict(model1, newdata = testing_set)
+model2_pred <- predict(model2, newdata = testing_set, type = "response")
+model3_pred <- predict(model3, newdata = testing_set)
+model4_pred <- predict(model4, newdata = testing_set, type = "response")
+
+
+# Actual values
+test_time <- testing_set$Survived
+
+
+# Calculate MSE, RMSE, and MAE for each group
+#for the model_1
+model1_MSE <- mean((test_time -model1_pred)^2)
+model1_RMSE <- sqrt(mean((test_time -model1_pred)^2))
+model1_MAE <- mean(abs(test_time -model1_pred))
+
+#for the model_2
+model2_MSE <- mean((test_time -model2_pred)^2)
+model2_RMSE <- sqrt(mean((test_time -model2_pred)^2))
+model2_MAE <- mean(abs(test_time -model2_pred))
+
+#for the model_3
+model3_MSE <- mean((test_time -model3_pred)^2)
+model3_RMSE <- sqrt(mean((test_time -model3_pred)^2))
+model3_MAE <- mean(abs(test_time -model3_pred))
+
+#for the model_4
+model4_MSE <- mean((test_time -model4_pred)^2)
+model4_RMSE <- sqrt(mean((test_time -model4_pred)^2))
+model4_MAE <- mean(abs(test_time -model4_pred))
+
+#kaggle scale
+kaggle_scale <- c(0.76794, 0.76794, 0.77033, 0.77033)
+
+
+#The final result 
+# Kaggle scale
+kaggle_scale <- c(0.76794, 0.76794, 0.77033, 0.77033)
+
+# The final result 
+The_final_table <- data.frame(
+  Test = c("MSE", "RMSE", "MAE", "Kaggle Scale"),
+  Model_1_lm = c(model1_MSE, model1_RMSE, model1_MAE, kaggle_scale[1]),
+  Model_1_glm = c(model2_MSE, model2_RMSE, model2_MAE, kaggle_scale[2]),
+  Model_2_lm = c(model3_MSE, model3_RMSE, model3_MAE, kaggle_scale[3]),
+  Model_2_glm = c(model4_MSE, model4_RMSE, model4_MAE, kaggle_scale[4])
+)
+
+# Print the final result
+print(The_final_table)
+
+
+```
+
+  The comparison scales between variable set one and variable set two are close, with only around a 0.01 difference in magnitude. Upon a detailed examination of the performance, we can observe that the logistic regression model performs better on a small scale. However, a detailed line-by-line analysis reveals that variable set two, when paired with logistic regression models, exhibits the best performance among all the models.
+
+  Comparing the Kaggle scale for predictions, we notice that the logistic regression model and the linear regression model for the same variable set have identical scales. This is because I forced R to assign a value of 1 when the model's output is greater than 0.5, and similarly, to assign a value of 0 when the prediction is lower than 0.5. As a result, even though the logistic regression model has better performance, the improvement is not significant enough to increase the probability of survival to the extent that it would change the outcome from death to survival compared to the linear regression model
+
+
+
+## Part 2: Regression Tree Model
+
+```{r include=FALSE}
+
+library(tidyverse)
+library(dplyr)
+library(fpp2)
+library(glmnet)
+library(tidyr)
+library(lmtest)
+library(boot)
+library(forecast)
+library(readr)
+library(ggfortify)
+library(tseries)
+library(urca)
+library(readxl)
+library( lubridate)
+library(tsbox)
+library(RColorBrewer)
+library(wesanderson)
+library(writexl)
+library(gridExtra)
+library(vars)
+library(leaps)
+library(broom)
+library(fastDummies)
+library(car)
+library(randomForest)
+library(caret)
+
+#model 2: the randomForest
+############
+############data import and cleaning
+#clean the enviroment and import the date
+rm( list = ls())
+
+#setting the saving addreess
+setwd("/Users/tie/Documents/GitHub/The-data-analysis-job--")
+
+#####################
+#Step one: Clean the data
+#####################
+Titanic_train_raw <- read_csv("Titanic data/train.csv", 
+                              col_types = cols( Name = col_skip(), Ticket = col_skip(), 
+                                                Cabin = col_skip()))
+
+#At here I skiped their name which does not impact the model training, 
+#their ticket number with is not important and their cabin which has limit number
+
+################ The age. 
+#I notice there are some age part are empty so i decided to use mean of age to fill the gap. 
+#but before that I just need to check the distribution of age between the survived and died
+
+
+#calcuate the average of all the age 
+
+
+######### fill the age
+
+#calcuate the average age
+The_average_age <- mean(Titanic_train_raw$Age, na.rm = TRUE)
+
+#fill the NA age 
+Titanic_train_raw$Age[is.na(Titanic_train_raw$Age)] <- The_average_age
+
+#outupt it into the aerage
+Titanic_train_without_age_gap <- Titanic_train_raw
+
+#remove towo empty line of embraketd 
+
+Titanic_train_cleaned <- na.omit(Titanic_train_without_age_gap)
+
+#we got the final data
+TTD <- dummy_cols(Titanic_train_cleaned, select_columns = "Sex", remove_selected_columns = TRUE)
+
+```
+
+
+  I transfer the survived variable into the factor and using 10 ford validation to determine the optimual number of mtry I should use.
+
+```{r echo=FALSE}
+
+#transfer the survived into factor 
+TTD$Survived <- as.factor(TTD$Survived) 
+
+#using the k ford cross validation to determine the number mtry win the 
+
+control <- trainControl(method="cv", number=10, search="grid", allowParallel = TRUE)
+
+# Define a sequence of ntree values from 1 to 10
+ntreeGrid <- expand.grid(mtry=1:10)
+
+# Train the model across the ntree range
+
+
+set.seed(123455632)
+# Note: find the optimal setting for the mtry in the regression tree
+model_test <- train(Survived ~ ., data=TTD, method="rf", trControl=control, tuneGrid=ntreeGrid)
+
+print(model_test)
 
 
 ```
 
 
-Notably, the coefficient for the variable "Sex_female" remains relatively high in both OLS and Ridge regression, suggesting a strong relationship with the dependent variable. The coefficients of Pclass, SibSp, Embarked, and Parch follow this trend.
+Then I constructed my regression tree with 10,000 trees (ntree), set ntry equal to 3, and nodesize to 1 for classifying the output.
+
+
+```{r echo=FALSE}
+# the optimual vaule for the mtry is 4
+
+
+rf_model <- randomForest(Survived ~ ., data = TTD, 
+                         ntree = 10000,  #how many 
+                         mtry = 4, #the optimal 
+                         nodesize = 1, #1 for classficiation (die or live)
+                         importance = TRUE)
+print(rf_model)
+
+
+```
+
+For the regression tree model, the prediction score is 0.777051, which outperforms the best linear regression and logistic regression models by 0.00718, approximately 0.718%.
+
+## Conclstion:
+
+In this assignment, I used three three different models—linear regression, logistic regression, and regression tree models—to train on the Titanic dataset and predict passenger survival in the test set. The results suggest that the regression tree model delivers the best performance with a prediction score of 0.777051, enhancing accuracy by 0.00718 compared to the best linear regression and logistic regression, which both have a variable set at 0.77033. Comparing logistic regression to linear regression, logistic regression performs slightly better in terms of MAE, RMSE, and MSE. However, this marginal improvement is not sufficient to alter the outcome when predictions greater than 0.5 are classified as 1 and those smaller than 0.5 as 0. Ultimately, the prediction scores are the same between logistic regression and linear regression.
+
 
 
 
