@@ -10,18 +10,8 @@ fontsize: 12pt
 
   In this assignment, I have chosen to use linear regression, logistic regression, and regression tree models to analyze and compare models in the training set data to predict the survival of passengers in the test dataset. The data consists of 11 variables, but only 8 are applicable for the comparative model. This dataset is not very high-dimensional, and all the key predictors are already well defined. For models that can inherently handle both numerical and categorical data and consider interaction terms (such as linear regression and logistic regression), there may not be a need for extensive dimensional reduction to perform well. Therefore, I did not choose principal component analysis (PCA) and Lasso/Double Lasso regression. Furthermore, I chose the regression tree model to handle complex, non-linear interactions between variables, which both linear and logistic regression cannot handle.
 
-
-  Even the 
-
-
-  Thr proference base on the Kaggle scores demostrict both linear and logisgtic regression model got the same score of 0.77033 by using a set of variables including Pclass, Age, SibSp, Embarked, and Sex_female. however the
-  
-  
-
-According to my analysis, performance metrics from Kaggle indicate a identitcal match between linear and logistic regression using variable set two (Pclass, Age, SibSp, Embarked, Sex_female) at 0.77033, with the regression tree model slightly outperforming them at 0.777051, enhancing accuracy by 0.00718. 
-
-The regression tree model has the best Kaggle score because it can capture non-linear relationships. Linear and logistic regression models are both constructed based on the assumption of linearity between the dependent and independent variables. Such an assumption may not hold true in real-world scenarios. In contrast, the regression tree does not assume linear dependence. It searches for the best path through the data that leads to the most similar outcomes within a leaf at the end of the path.
-
+  In evaluating the performance of different models on the Titanic dataset, all models had close prediction scales with marginal differences. The regression tree model had the highest prediction score of 0.77751, followed by logistic regression at 0.77272, and linear regression was the last with a score of 0.77033. The marginal but significant advantage of the regression tree model compared to logistic regression, with a difference of 0.00479, and 0.00718 compared with linear regression, demonstrates the regression tree model's  capability in handling complex and non-linear relationships between variables where the linear models fall short. Because Linear and logistic regression models are both constructed based on the assumption of linearity between the dependent and independent variables, an assumption may not hold true in real-world situation. 
+  Compared with linear regression, logistic regression's prediction accuracy increases by 0.00239. This is because logistic regression is designed to model probabilities directly, thereby aptly handling binary dependent variables with outputs between 0 and 1. Compared to linear regression, which can only generate predictions within the range of 0 and 1, making it less suitable for binary classification tasks.
 
 
 
@@ -113,7 +103,7 @@ The_average_age <- mean(Titanic_train_raw$Age, na.rm = TRUE)
 print(The_average_age)
 ```
 
-The average age of the entire training data set are 29.69 which is right in between the average age for people who survived and died. Therefore using the average age will not introduce significant bias toward the training data.
+Using the average age to impute missing values into the dataset, the average age within the training dataset is 29.69, which lies between the average ages of those who survived (28.343) and those who died (30.62). Therefore, using the average age to replace the missing 177 values will avoid the creation of artificial peaks in the data distribution, mitigating the potential for bias. Furthermore, it is consistent with the linear relationship assumed between independent variables and the outcome variable in linear regression, and between the independent variable and the log odds of the outcome in logistic regression models.
 
 Furthermore, after filling in all the missing age values, I removed the 2 missing rows of the Embarked value from the training dataset and transformed the 'Sex' column into a dummy variable. This transformation was necessary because machine learning models require numerical input, and converting 'Sex' into a dummy variable.
 . 
@@ -190,8 +180,8 @@ legend("center", legend = c("MALE", "Female"), fill = c("black", "gray"))
 
 ```
 
-  For better perform of the linear regression, I check the heteroscedasticity and the multicollinearity of the training data set.
-  
+ To improve the performance of the linear regression, I checked for heteroscedasticity and multicollinearity in the training dataset.
+ 
   
   For The heteroscedasticity test, I am using BP test.
 ```{r echo=FALSE}
@@ -213,7 +203,7 @@ data_test_1 <- lm(live ~ . , data = data2)
 bptest(data_test_1)
 ```
 
-Since the p value is 0.19 which is greater than 0.05, we fail to reject the null hypothesis. We state that there is not enough statisticallty significant evidence of heteroskedasticity exist in the data set.
+Since the p-value is 0.19, which is greater than 0.05, we fail to reject the null hypothesis. We conclude that there is not enough statistically significant evidence to suggest heteroskedasticity exists in the dataset
 
 
   For the multicollinearity, I am using the VIF test.
@@ -231,7 +221,7 @@ All the VIF values for the variable are between 1 and 1.6. This indicates that t
 In order to select the optimal variable for constructing the linear regression model without risking over fitting, I will use the best subset selection and Ridge regression to explore all possible linear combinations of variables
 
 
-First, I will using the best subset selection to search all the possible combinations and compare their BIC value.
+First, I will use the best subset selection to search all possible combinations and compare their BIC values.
 
 ```{r echo=FALSE}
 #create a new matrix
@@ -255,10 +245,12 @@ reg_summary <- summary(regfit_all)
 plot(regfit_all, scale = "bic")
 ```
 
-From the graph, we can see that the combination of Pclass, Age, SibSp, and sex_female has the lowest BIC, which means this model is likely the most efficient among the tested combinations in terms of balancing model complexity and goodness of fit.
+The Bayesian Information Criterion (BIC) evaluates a model's performance by considering how well the model explains the data and penalizing models for their number of parameters, which helps prevent the problem of overfitting. A lower BIC value suggests that the model is more effective at explaining the data while using fewer parameters, striking a balance between a good fit and avoiding overfitting.
+
+From the graph, we can see that the combination of Pclass, Age, SibSp, and sex_female has the lowest BIC, indicating that this model is likely the most efficient among the tested combinations in terms of balancing model complexity and goodness of fit.
+
 
 Next, we determine the number of variables.
-
 ```{r echo=FALSE}
 
 par(mfrow=c(1,3))
@@ -278,7 +270,7 @@ points(m.cp, reg_summary$cp[m.cp], col = "red", cex = 2, pch = 20) # Highlight t
 
 ```
 
-The BIC graphy suggest with the four variables will reach the lowest BIC same as the early grpahy point out. As CP(AIC) graph suggest that the optimal variables number is 5. 
+Mallows' Cp (Cp) assesses a function similar to that of the BIC; it measures a model's performance by evaluating the trade-off between the model's complexity and its ability to fit the data closely. Similar to BIC, a lower Cp value suggests that the model best balances fitting the data and complexity. The Cp graph suggests that the optimal number of variables is 5.
 
 
 
@@ -325,15 +317,12 @@ print(performence_table)
 
 ```
 
-notably, the coefficients for the variables "Sex_female" and "Pclass" remain relatively high in both OLS and Ridge regression, suggesting a strong relationship with the dependent variable. The coefficients for SibSp, Embarked, and Parch follow this trend. However, Ridge regression only shrinks the coefficients of two variables, "Age" and "Fare," towards zero. Therefore, it does not provide any new model suggestions.
+Ridge regression applies a penalty to the size of coefficients to shrink them toward zero, particularly targeting less important predictors. notably, the coefficients for the variables "Sex_female" and "Pclass" remain relatively high in both OLS and Ridge regression, suggesting a strong relationship with the dependent variable. The coefficients for SibSp, Embarked, and Parch follow this trend. However, Ridge regression only shrinks the coefficients of two variables, "Age" and "Fare," towards zero. Therefore, it does not provide any new model suggestions.
 
 
 ## Step Four: Model Comparison and Kaggle Scale
 
-In this step, I divided the training data set into two parts: 90% of the data will be used for training, and the remaining 10% will serve as the test set. This division will allow us to calculate the Mean Squared Error, Root Mean Squared Error, and Mean Absolute Error to evaluate the performance of two sets of linear regression and two sets of logistic regression models. MSE and RMSE impose larger penalties for higher prediction errors, such that the cost of large errors is more significant. As for MAE, focusing more on the general performance of the model, it provides an average error without specifically penalizing large errors.
-
-
-And then I combine the Kaggle prediction scale together with the table.
+In this step, I divided the training dataset into two parts: 90% of the data will be used for training, and the remaining 10% will serve as the test set. This division will enable us to calculate the Mean Squared Error (MSE), Root Mean Squared Error (RMSE), and Mean Absolute Error (MAE) to evaluate the performance of two sets of linear regression models and two sets of logistic regression models. MSE and RMSE impose larger penalties for higher prediction errors, making the cost of large errors more significant. In contrast, MAE, by focusing more on the general performance of the model, provides an average error without specifically penalizing large errors. By comparing these three measurements, we can better evaluate the model's performance in prediction. Furthermore, I have integrated the Kaggle prediction scale with the table.
 
 ```{R echo=FALSE}
 #3.The model comparsing
@@ -391,12 +380,7 @@ model4_RMSE <- sqrt(mean((test_time -model4_pred)^2))
 model4_MAE <- mean(abs(test_time -model4_pred))
 
 #kaggle scale
-kaggle_scale <- c(0.76794, 0.76794, 0.77033, 0.77033)
-
-
-#The final result 
-# Kaggle scale
-kaggle_scale <- c(0.76794, 0.76794, 0.77033, 0.77033)
+kaggle_scale <- c(0.76794, 0.75385, 0.77033,0.77272)
 
 # The final result 
 The_final_table <- data.frame(
@@ -413,10 +397,8 @@ print(The_final_table)
 
 ```
 
-The logistic regression model with variable set two has the lowest MSE, RMSE, and MAE compared to the other three models. However, the logistic regression model and the linear regression model with the same variable set have identical Kaggle prediction scales. A possible explanation is that I set the output to 1 when the model's predicted output is higher than 0.5, and to 0 when the model's predicted output is lower than 0.5. As a result, even though the logistic regression model performs better than the linear regression model in terms of MSE, RMSE, and MAE, the improvements are not significant enough to increase the probability of survival to change the output.
+The logistic regression model with variable set two (Pclass + Sex_female + Age + SibSp + Embarked) has the highest kaggle prediction scale with the longest MSE, RMSE and MAE.  
 
-
-  Comparing the Kaggle scale for predictions, we notice that the logistic regression model and the linear regression model for the same variable set have identical scales. This is because I forced R to assign a value of 1 when the model's output is greater than 0.5, and similarly, to assign a value of 0 when the prediction is lower than 0.5. As a result, even though the logistic regression model has better performance, the improvement is not significant enough to increase the probability of survival to the extent that it would change the outcome from death to survival compared to the linear regression model
 
 
 
@@ -547,8 +529,7 @@ For the regression tree model, the prediction score is 0.777051, which outperfor
 
 ## Conclstion:
 
-In this assignment, I used three three different models—linear regression, logistic regression, and regression tree models—to train on the Titanic dataset and predict passenger survival in the test set. The results suggest that the regression tree model delivers the best performance with a prediction score of 0.777051, enhancing accuracy by 0.00718 compared to the best linear regression and logistic regression, which both have a variable set at 0.77033. Comparing logistic regression to linear regression, logistic regression performs slightly better in terms of MAE, RMSE, and MSE. However, this marginal improvement is not sufficient to alter the outcome when predictions greater than 0.5 are classified as 1 and those smaller than 0.5 as 0. Ultimately, the prediction scores are the same between logistic regression and linear regression.
-
+In this assignment, I used three different models—linear regression, logistic regression, and regression tree models—to train on the Titanic dataset and predict passenger survival in the test set. The results suggest that the regression tree model delivers the best performance with a prediction score of 0.777051, enhancing accuracy by 0.00718 compared to the best linear regression and logistic regression, which both have a variable set at 0.77033. Comparing logistic regression to linear regression, logistic regression performs slightly better in terms of MAE, RMSE, and MSE. However, this marginal improvement is not sufficient to alter the outcome when predictions greater than 0.5 are classified as 1 and those smaller than 0.5 as 0. Ultimately, the prediction scores are the same between logistic regression and linear regression.
 
 
 
