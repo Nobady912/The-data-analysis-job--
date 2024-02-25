@@ -2,18 +2,30 @@
 title: "The Titanic Data Analysis"
 author: "Tie Ma"
 date: "`r Sys.Date()`"
-output:
-  pdf_document: default
+output: 
+  pdf_document:
+fontsize: 12pt
 ---
 
 
-In this assignment, I have chosen to employ linear regression, logistic regression, and regression tree models to delve into the relatively compact Titanic dataset, which consists of 11 variables, albeit only 8 are applicable. The dataset's constrained size somewhat limits the effectiveness of principal components or lasso/double lasso models, which excel when tasked with condensing variable sets and boosting model efficacy due to their prowess in reducing dimensionality and selecting relevant features.
+  In this assignment, I have chosen to use linear regression, logistic regression, and regression tree models to analyze and compare models in the training set data to predict the survival of passengers in the test dataset. The data consists of 11 variables, but only 8 are applicable for the comparative model. This dataset is not very high-dimensional, and all the key predictors are already well defined. For models that can inherently handle both numerical and categorical data and consider interaction terms (such as linear regression and logistic regression), there may not be a need for extensive dimensional reduction to perform well. Therefore, I did not choose principal component analysis (PCA) and Lasso/Double Lasso regression. Furthermore, I chose the regression tree model to handle complex, non-linear interactions between variables, which both linear and logistic regression cannot handle.
 
-My preference for the linear regression model stems from it being the mode I have been trained in and studied for a long time. Logistic regression is selected due to its superior performance with binary outputs, particularly for predicting survival on the Titanic. For machine learning and to capture the non-linear relationships among the variables, I chose the regression tree model.
 
-According to my analysis, performance metrics from Kaggle indicate a close match between linear and logistic regression at 0.77033, with the regression tree model slightly outperforming them at 0.777051, enhancing accuracy by a mere 0.00718.
+  Even the 
+
+
+  Thr proference base on the Kaggle scores demostrict both linear and logisgtic regression model got the same score of 0.77033 by using a set of variables including Pclass, Age, SibSp, Embarked, and Sex_female. however the
+  
+  
+
+According to my analysis, performance metrics from Kaggle indicate a identitcal match between linear and logistic regression using variable set two (Pclass, Age, SibSp, Embarked, Sex_female) at 0.77033, with the regression tree model slightly outperforming them at 0.777051, enhancing accuracy by 0.00718. 
 
 The regression tree model has the best Kaggle score because it can capture non-linear relationships. Linear and logistic regression models are both constructed based on the assumption of linearity between the dependent and independent variables. Such an assumption may not hold true in real-world scenarios. In contrast, the regression tree does not assume linear dependence. It searches for the best path through the data that leads to the most similar outcomes within a leaf at the end of the path.
+
+
+
+
+
 
 The first part includes data cleaning, checking, and variable selection using the best subset and Ridge regression, and compares the performance and Kaggle scores for two different variable sets using logistic regression and linear regression. The outcomes are identical due to the small, marginally better performance difference between logistic regression and linear regression, which does not significantly impact the final outcome. However, the best-performing model is logistic regression with the following variables: Pclass + Sex_female + Age + SibSp + Embarked.
 
@@ -318,7 +330,10 @@ notably, the coefficients for the variables "Sex_female" and "Pclass" remain rel
 
 ## Step Four: Model Comparison and Kaggle Scale
 
-In this step, I divided the training set into two parts: 90% of the data will be used for training, and the remaining 10% will serve as the test set. This division will allow us to calculate the Mean Squared Error, Root Mean Squared Error, and Mean Absolute Error to evaluate the performance of two sets of linear regression and two sets of logistic regression models. And then I combine the Kaggle prediction scale together with the table.
+In this step, I divided the training data set into two parts: 90% of the data will be used for training, and the remaining 10% will serve as the test set. This division will allow us to calculate the Mean Squared Error, Root Mean Squared Error, and Mean Absolute Error to evaluate the performance of two sets of linear regression and two sets of logistic regression models. MSE and RMSE impose larger penalties for higher prediction errors, such that the cost of large errors is more significant. As for MAE, focusing more on the general performance of the model, it provides an average error without specifically penalizing large errors.
+
+
+And then I combine the Kaggle prediction scale together with the table.
 
 ```{R echo=FALSE}
 #3.The model comparsing
@@ -398,7 +413,8 @@ print(The_final_table)
 
 ```
 
-  The comparison scales between variable set one and variable set two are close, with only around a 0.01 difference in magnitude. Upon a detailed examination of the performance, we can observe that the logistic regression model performs better on a small scale. However, a detailed line-by-line analysis reveals that variable set two, when paired with logistic regression models, exhibits the best performance among all the models.
+The logistic regression model with variable set two has the lowest MSE, RMSE, and MAE compared to the other three models. However, the logistic regression model and the linear regression model with the same variable set have identical Kaggle prediction scales. A possible explanation is that I set the output to 1 when the model's predicted output is higher than 0.5, and to 0 when the model's predicted output is lower than 0.5. As a result, even though the logistic regression model performs better than the linear regression model in terms of MSE, RMSE, and MAE, the improvements are not significant enough to increase the probability of survival to change the output.
+
 
   Comparing the Kaggle scale for predictions, we notice that the logistic regression model and the linear regression model for the same variable set have identical scales. This is because I forced R to assign a value of 1 when the model's output is greater than 0.5, and similarly, to assign a value of 0 when the prediction is lower than 0.5. As a result, even though the logistic regression model has better performance, the improvement is not significant enough to increase the probability of survival to the extent that it would change the outcome from death to survival compared to the linear regression model
 
