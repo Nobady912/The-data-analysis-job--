@@ -54,9 +54,21 @@ setwd("/Users/tie/Documents/GitHub/The-data-analysis-job--")
 
 ```
 
-  I removed the name, ticket number, and cabin number during the data import process because the name and ticket number are not important for training the data, and only a few cabin numbers will not aid in training the modes
+The Taitanic training data set including following 11 variable: 
 
+- `PassengerId`: The unique Identification number for given to each passage.
+- `Survived`: Indicates if a passenger survived(1) or not (0).
+- `Pclass` passenger class (1 for first-class, 2 for second-class, 3 for third-class). 
+- `Sex`: The gender of the passenger (male or female).
+- `Age`: The age of a passenger.
+- `SibSp`: The number of siblings or spouses aboard.
+- `Parch`: The number of parents or children aboard.
+- `Fare`: The ticket fare. 
+- `Embarked`: port of embarkation (C for Cherbourg, Q for Queenstown, S for Southampton). 
+- `Cabin`: The cabin number.
+- `Ticket`: The ticket number.
 
+To better train the model, I removed the names, ticket numbers, and cabin numbers during the data import process because they are not crucial for training the dataset, and having only a few cabin numbers does not contribute to the effectiveness of the model training. First, I checked for any NA (missing) values in the training dataset.
 ``` {r echo=FALSE}
 
 #loding the data
@@ -70,7 +82,8 @@ Titanic_train_raw <- read_csv("Titanic data/train.csv",
 print(colSums(is.na(Titanic_train_raw )))
 ```
 
- The training data is missing 177 Age values and 2 Embarked values. Considering the size of the training dataset is only 881 rows, removing all the missing Age variables would further reduce the available data for the model. Therefore, I decided to use the average age to fill the missing 177 values. However, I do need to check the average age between the people who survived and those who did not to avoid introducing bias into the training dataset.
+
+The training data is missing 177 Age values and 2 Embarked values. Considering the size of the training dataset is only 881 rows, removing all the missing Age variables would further reduce the available data for the model. Therefore, I decided to use the average age to fill the missing 177 values. However, I do need to check the average age between the people who survived and those who did not to avoid introducing bias into the training dataset.
   
   
 The average age by Survived as following.
