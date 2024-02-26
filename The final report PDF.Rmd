@@ -6,22 +6,21 @@ output:
   pdf_document:
 fontsize: 12pt
 ---
+In the framework of this analysis, linear regression, logistic regression, and random forest models have been selected to evaluate and contrast their effectiveness on the training dataset for predicting passenger survival within the test dataset. The dataset consists of 11 variables, 8 of which have been used for this study.
 
+Given the constraints of the variable set, the necessity for extensive dimensionality reduction methods such as Principal Component Analysis (PCA) and lasso or double lasso regression is not prioritized, as their performance may not be significantly better than that of simple linear regression and logistic regression. Both models are better suited to situations where there are a larger number of variables with existing multicollinearity. Therefore, I have chosen the linear regression model along with the logistic regression model.
 
-  In this assignment, I have chosen to use linear regression, logistic regression, and regression tree models to analyze and compare models in the training set data to predict the survival of passengers in the test dataset. The data consists of 11 variables, but only 8 are applicable for the comparative model. This dataset is not very high-dimensional, and all the key predictors are already well defined. For models that can inherently handle both numerical and categorical data and consider interaction terms (such as linear regression and logistic regression), there may not be a need for extensive dimensional reduction to perform well. Therefore, I did not choose principal component analysis (PCA) and Lasso/Double Lasso regression. Furthermore, I chose the regression tree model to handle complex, non-linear interactions between variables, which both linear and logistic regression cannot handle.
+To better grasp complex and nonlinear relationships that linear regression and logistic regression cannot capture, I'm turning to the Random Forest model. This model allows us to dive deeper into the data's patterns, going beyond what simpler models can achieve.
 
-  In evaluating the performance of different models on the Titanic dataset, all models had close prediction scales with marginal differences. The regression tree model had the highest prediction score of 0.77751, followed by logistic regression at 0.77272, and linear regression was the last with a score of 0.77033. The marginal but significant advantage of the regression tree model compared to logistic regression, with a difference of 0.00479, and 0.00718 compared with linear regression, demonstrates the regression tree model's  capability in handling complex and non-linear relationships between variables where the linear models fall short. Because Linear and logistic regression models are both constructed based on the assumption of linearity between the dependent and independent variables, an assumption may not hold true in real-world situation. 
-  Compared with linear regression, logistic regression's prediction accuracy increases by 0.00239. This is because logistic regression is designed to model probabilities directly, thereby aptly handling binary dependent variables with outputs between 0 and 1. Compared to linear regression, which can only generate predictions within the range of 0 and 1, making it less suitable for binary classification tasks.
+The examination of the Titanic dataset through both linear and logistic regression models suggests a pattern of determinants affecting survival outcomes. Passenger class has a negative effect on survival, with higher classes associated with a decreasing chance of survival. Gender plays a significant role, with females having a higher probability of survival. Age negatively correlates with survival, suggesting that younger passengers are more likely to survive. The presence of siblings or spouses aboard shows a slight negative impact on survival chances. Furthermore, individuals who embarked from Southampton are slightly less likely to survive, primarily because the majority of passengers boarded the Titanic at Southampton.
 
+The prediction performance of linear regression, logistic regression and radom forest model on the test test show  prediction scales with marginal differences. The Random Forest model exhibited the highest prediction score of 0.77751, followed by logistic regression with a score of 0.77272, and linear regression trailing with a score of 0.77033. 
 
+Although the differences are marginal, they are significant, with the Random Forest model demonstrating a superior advantage of 0.00479 over logistic regression and 0.00718 over linear regression. It demonstrates the Random Forest model's capability in handling complex and non-linear relationships between variables where linear models fall short. Because linear and logistic regression models are both constructed based on the assumption of linearity between the dependent and independent variables, an assumption that may not hold true in real-world situations. In the context of the Titanic dataset, the assumption of linearity between variables such as socio-economic status, age, and family connections may interact in non-linear ways.  For instance, the benefit of a higher socio-economic status on survival likely varies more significantly for adults than for children, who were more likely to be prioritized for lifeboat sport regardless of social class.
 
+This report comprises three parts. In the first part, I perform data cleaning and evaluation. The second part involves constructing and evaluating the performance of linear and logistic regression models. Finally, in the third part, I will construct and optimize a random forest model.
 
-
-The first part includes data cleaning, checking, and variable selection using the best subset and Ridge regression, and compares the performance and Kaggle scores for two different variable sets using logistic regression and linear regression. The outcomes are identical due to the small, marginally better performance difference between logistic regression and linear regression, which does not significantly impact the final outcome. However, the best-performing model is logistic regression with the following variables: Pclass + Sex_female + Age + SibSp + Embarked.
-
-The second part of this assignment involves using a regression tree model. I first used 10-fold cross-validation to determine the optimal settings for mtry, and then generated the regression tree model.
-
-## Part one: The data evaluation process.
+## Part One: Data Cleaning and Evaluation
 ```{r setup, include=FALSE}
 
 rm( list = ls())
@@ -56,9 +55,9 @@ setwd("/Users/tie/Documents/GitHub/The-data-analysis-job--")
 
 ```
 
-The Taitanic training data set including following 11 variable: 
+The Titanic training data set including following 11 variable: 
 
-- `PassengerId`: The unique Identification number for given to each passage.
+- `PassengerId`: The unique Identification number.
 - `Survived`: Indicates if a passenger survived(1) or not (0).
 - `Pclass` passenger class (1 for first-class, 2 for second-class, 3 for third-class). 
 - `Sex`: The gender of the passenger (male or female).
@@ -70,15 +69,17 @@ The Taitanic training data set including following 11 variable:
 - `Cabin`: The cabin number.
 - `Ticket`: The ticket number.
 
-To better train the model, I removed the names, ticket numbers, and cabin numbers during the data import process because they are not crucial for training the dataset, and having only a few cabin numbers does not contribute to the effectiveness of the model training. First, I checked for any NA (missing) values in the training dataset.
-``` {r echo=FALSE}
+To optimize the model's training efficacy, names, ticket numbers, and cabin numbers were omitted due to their insufficiency in providing meaningful patterns for the regression model. Specifically, cabin numbers were excluded because they are missing in 687 instances, indicating that 77% of the training data lack cabin numbers
+
+```{undefined include=FALSE}
 
 #loding the data
-Titanic_train_raw <- read_csv("Titanic data/train.csv", 
+  Titanic_train_raw <- read_csv("Titanic data/train.csv", 
                                 col_types = cols( Name = col_skip(), Ticket = col_skip(), 
                                                  Cabin = col_skip()))
 ```
 
+ First, I checked for any NA (missing) values in the training dataset.
 ```{r echo=FALSE}
 #check the number of NA in the data set 
 print(colSums(is.na(Titanic_train_raw )))
@@ -103,10 +104,10 @@ The_average_age <- mean(Titanic_train_raw$Age, na.rm = TRUE)
 print(The_average_age)
 ```
 
-Using the average age to impute missing values into the dataset, the average age within the training dataset is 29.69, which lies between the average ages of those who survived (28.343) and those who died (30.62). Therefore, using the average age to replace the missing 177 values will avoid the creation of artificial peaks in the data distribution, mitigating the potential for bias. Furthermore, it is consistent with the linear relationship assumed between independent variables and the outcome variable in linear regression, and between the independent variable and the log odds of the outcome in logistic regression models.
 
-Furthermore, after filling in all the missing age values, I removed the 2 missing rows of the Embarked value from the training dataset and transformed the 'Sex' column into a dummy variable. This transformation was necessary because machine learning models require numerical input, and converting 'Sex' into a dummy variable.
-. 
+Replacing missing values with the average age of 29.69 in the entire training dataset, which lies between the mean ages of survivors (28.343) and non-survivors (30.62), will introduce a bias towards the non-survivor group in the analysis of the correlation between age and survival outcomes. However, compared to the disadvantage of deleting all missing age values and thereby losing a critical variable in predicting survival, a minor bias is relatively acceptable
+
+Furthermore, after filling in all the missing age values, I removed the 2 missing rows of the Embarked value from the training dataset and transformed the 'Sex' column into a dummy variable. 
 
 ```{r include=FALSE}
 #replace the missing value with the average 
@@ -122,11 +123,7 @@ TTD<- dummy_cols(Titanic_train_cleaned, select_columns = "Sex", remove_selected_
 ```
 
 
-## Step two: Check The Data. 
-  
-  For a better understanding of the possible patterns in the data and to determine potential variables for the linear regression and logit models, I examined graphs comparing the impact of different variables on passenger survival. From these graphs, we can observe that Passenger Class (Pclass), SibSp, and gender significantly influence the survival of passengers. Furthermore, the fare, representing the ticket price, shows that passengers who paid higher fares were more likely to survive. This observation aligns with the conclusion drawn from the Passenger Class graphs. 
-  
-Furthermore, the rest of the variables do not provide a visible impact on survival according to the analysis.
+  For a better understanding of the possible patterns in the data and to determine potential variables for the linear regression and logit models, I examined graphs comparing the impact of different variables on passenger survival. From these graphs, we can observe that Passenger Class (Pclass), SibSp, and gender significantly influence the survival of passengers. Furthermore, the fare, representing the ticket price, shows that passengers who paid higher fares were more likely to survive. This observation aligns with the conclusion drawn from the Passenger Class graphs.Furthermore, the rest of the variables do not provide a visible impact on survival according to the graph.
   
 ```{r echo=FALSE, fig.height=6, fig.width=8}
 
@@ -180,45 +177,9 @@ legend("center", legend = c("MALE", "Female"), fill = c("black", "gray"))
 
 ```
 
- To improve the performance of the linear regression, I checked for heteroscedasticity and multicollinearity in the training dataset.
- 
-  
-  For The heteroscedasticity test, I am using BP test.
-```{r echo=FALSE}
-  #crate a new matrix 
-x <- TTD%>%
-  dplyr::select(
-    Pclass, Age, SibSp, Parch, Fare, Embarked, Sex_female
-  ) %>%
-  data.matrix()
+## Step Three: Choose The Variables
 
-#take out the survive
-live <- TTD$Survived
-
-#put two things together as data frame
-data2 <- data.frame(x, live)
-
-#The BP test
-data_test_1 <- lm(live ~ . , data = data2)
-bptest(data_test_1)
-```
-
-Since the p-value is 0.19, which is greater than 0.05, we fail to reject the null hypothesis. We conclude that there is not enough statistically significant evidence to suggest heteroskedasticity exists in the dataset
-
-
-  For the multicollinearity, I am using the VIF test.
-```{R echo=FALSE}
-vif(data_test_1)
-```
-
-All the VIF values for the variable are between 1 and 1.6. This indicates that the training data show moderate correlation which will not impact the model outcome. 
-
-
-
-
-## Step Three: Choose The Variable
-
-In order to select the optimal variable for constructing the linear regression model without risking over fitting, I will use the best subset selection and Ridge regression to explore all possible linear combinations of variables
+In order to select the optimal variables for constructing the linear regression model without risking over fitting, I will use the best subset selection and Ridge regression to explore all possible linear combinations of variables
 
 
 First, I will use the best subset selection to search all possible combinations and compare their BIC values.
@@ -270,6 +231,7 @@ points(m.cp, reg_summary$cp[m.cp], col = "red", cex = 2, pch = 20) # Highlight t
 
 ```
 
+
 Mallows' Cp (Cp) assesses a function similar to that of the BIC; it measures a model's performance by evaluating the trade-off between the model's complexity and its ability to fit the data closely. Similar to BIC, a lower Cp value suggests that the model best balances fitting the data and complexity. The Cp graph suggests that the optimal number of variables is 5.
 
 
@@ -279,11 +241,55 @@ According to the best subset selection, I should choose the two group with the f
 - The first group includes:
     -   Pclass, Age, SibSp, Sex_female
 - The second group includes:
-     -  Pclass, Age, SibSp, Embarked, Sex_female"
+     -  Pclass, Age, SibSp, Embarked, Sex_female
+
+Next, I checked for heteroscedasticity and multicollinearity in the training dataset for both vairable in both linear regression and logistic regression models. 
+
+For The heteroscedasticity test for linear regression, I am using BP test.
+```{r echo=FALSE}
+  #crate a new matrix 
+x_1 <- TTD%>%
+  dplyr::select(
+   Pclass, Age, SibSp, Sex_female
+  ) %>%
+  data.matrix()
+
+x_2 <- TTD%>%
+  dplyr::select(
+     Pclass, Age, SibSp, Embarked, Sex_female
+  ) %>%
+  data.matrix()
 
 
+#take out the survive
+live <- TTD$Survived
+#put two things together as data frame
+data_V1 <- data.frame(x_1, live)
+data_V2 <- data.frame(x_2, live)
 
-Now, let's proform the Ridge regression.
+#The BP test
+data_test_1_lm <- lm(live ~ . , data = data_V1)
+data_test_2_lm <- lm(live ~ ., data = data_V2)
+date_test_1_gm <- glm(live ~ Pclass + Sex_female + Age + SibSp, family = binomial, data = data_V1)
+date_test_2_gm <- glm(live ~ Pclass + Sex_female + Age + SibSp + Embarked, family = binomial, data = data_V2)
+bptest(data_test_1)
+bptest(data_test_2)
+```
+
+Given that the p-values for the variable sets under the linear regression model exceed the 0.05 , we fail to reject the null hypothesis. We conclude that there is not enough statistically significant evidence to suggest heteroskedasticity exists in the dataset.
+
+
+ For the multicollinearity test for linear regression, I am using the VIF test.
+```{R echo=FALSE}
+vif(data_test_1_lm)
+vif(data_test_2_lm)
+vif(date_test_1_gm)
+vif(date_test_2_gm)
+```
+All the VIF values for the variable are between 1 and 1.6. This indicates that the training data show moderate correlation which will not impact the model outcome. 
+
+
+Next, we will proceed with the implementation of Ridge regression
 ```{r echo=FALSE}
 ########## The Ridge Regression Time ##########
 
@@ -322,7 +328,11 @@ Ridge regression applies a penalty to the size of coefficients to shrink them to
 
 ## Step Four: Model Comparison and Kaggle Scale
 
-In this step, I divided the training dataset into two parts: 90% of the data will be used for training, and the remaining 10% will serve as the test set. This division will enable us to calculate the Mean Squared Error (MSE), Root Mean Squared Error (RMSE), and Mean Absolute Error (MAE) to evaluate the performance of two sets of linear regression models and two sets of logistic regression models. MSE and RMSE impose larger penalties for higher prediction errors, making the cost of large errors more significant. In contrast, MAE, by focusing more on the general performance of the model, provides an average error without specifically penalizing large errors. By comparing these three measurements, we can better evaluate the model's performance in prediction. Furthermore, I have integrated the Kaggle prediction scale with the table.
+In this step, the training dataset was divided into two segments: 90% of the data was allocated for training, while the remaining 10% served as the test set. The training dataset was used to train the models, which were then employed to predict the output for the test set. By comparing the predicted outcomes with the actual values in the test set, we could assess the accuracy of the model's predictions.
+
+Furthermore, the discrepancies between predicted and actual values were utilized to compute the Mean Squared Error (MSE), Root Mean Squared Error (RMSE), and Mean Absolute Error (MAE). MSE and RMSE impose greater penalties for larger prediction errors, emphasizing the importance of minimizing such errors. Conversely, MAE focuses on the overall performance of the model, providing an average error measure without specific emphasis on large errors. By evaluating these metrics, we could gain insights into the predictive performance of both linear and logistic regression models.
+
+Additionally, the Kaggle prediction scale was integrated into the analysis to facilitate comparison and interpretation of the model's performance within a standardized framework.
 
 ```{R echo=FALSE}
 #3.The model comparsing
@@ -400,9 +410,7 @@ print(The_final_table)
 The logistic regression model with variable set two (Pclass + Sex_female + Age + SibSp + Embarked) has the highest kaggle prediction scale with the longest MSE, RMSE and MAE.  
 
 
-
-
-## Part 2: Regression Tree Model
+## Part 3: random forest model
 
 ```{r include=FALSE}
 
@@ -480,9 +488,10 @@ TTD <- dummy_cols(Titanic_train_cleaned, select_columns = "Sex", remove_selected
 
 ```
 
+  "To construct the best Random Forest model, determining optimal values for `ntree()` and `mtry()` is crucial. `ntree()` defines the number of trees in the forest, influencing the model's stability, while `mtry()` dictates the number of variables considered at each decision point, balancing model bias and variance for better robustness.
 
-  I transfer the survived variable into the factor and using 10 ford validation to determine the optimual number of mtry I should use.
-
+To find the optimal `mtry()`, typically set around one-third of the total features (in this case, between 3 and 4 for 10 variables), a 10-fold cross-validation is employed. This method partitions the dataset into 10 folds, using 9 for training and 1 for testing iteratively. By assessing performance across the entire dataset, it ensures the chosen `mtry()` value maximizes model performance efficiently.
+  
 ```{r echo=FALSE}
 
 #transfer the survived into factor 
@@ -496,42 +505,45 @@ control <- trainControl(method="cv", number=10, search="grid", allowParallel = T
 ntreeGrid <- expand.grid(mtry=1:10)
 
 # Train the model across the ntree range
-
-
+# set seed so it can be repate...
+# its been jump between 3 to 4 a lot...
 set.seed(123455632)
-# Note: find the optimal setting for the mtry in the regression tree
+
+#The time for the test!!!!!
 model_test <- train(Survived ~ ., data=TTD, method="rf", trControl=control, tuneGrid=ntreeGrid)
 
+#show the output! 
 print(model_test)
 
 
 ```
+  According to the output, the `mtry()` = 4 has the highest accuracy with the highest Kappa scale.
 
-
-Then I constructed my regression tree with 10,000 trees (ntree), set ntry equal to 3, and nodesize to 1 for classifying the output.
-
+Then I constructed my Random Forest with 10,000 trees `ntree()`, set `mtry()` equal to 3, and `nodesize()` to 1 for classifying the output.
 
 ```{r echo=FALSE}
 # the optimual vaule for the mtry is 4
 
 
 rf_model <- randomForest(Survived ~ ., data = TTD, 
-                         ntree = 10000,  #how many 
-                         mtry = 4, #the optimal 
+                         ntree = 10000,  #how many tree
+                         mtry = 4, #the optimal
                          nodesize = 1, #1 for classficiation (die or live)
                          importance = TRUE)
 print(rf_model)
 
 
 ```
+  Out of Bag error rate (OBB) is measurement of average performance of the forest, at 17.55% The Random Forest method constructs each individual tree by randomly selecting subsets from the entire dataset, a process called 'in-bag' data selection. To evaluate the performance of each individual tree, the algorithm uses the 'out-of-bag' data, which consists of all the data points that were not selected to construct each tree, to evaluate the accuracy of each tree.  Consequently, the OOB error rate offers an estimate of the average performance of the entire forest.
 
-For the regression tree model, the prediction score is 0.777051, which outperforms the best linear regression and logistic regression models by 0.00718, approximately 0.718%.
+  The confusion matrix shows that the Random Forest correctly predicted 492 passengers who didn't survive and 241 who survived. However, it made errors on 57 individuals who the model predicted would survive but didn't, and 100 individuals who the model guessed wouldn't survive but did. The error rates are 10.4% for those who did not survive and 29.4% for those who survived. This indicates that this Random Forest model is better at identifying who won't survive than who wil 
+For the random forest model, the prediction score is 0.77751 which is the higher than logistic model and linear regression.
+
+
+
 
 ## Conclstion:
 
-In this assignment, I used three different models—linear regression, logistic regression, and regression tree models—to train on the Titanic dataset and predict passenger survival in the test set. The results suggest that the regression tree model delivers the best performance with a prediction score of 0.777051, enhancing accuracy by 0.00718 compared to the best linear regression and logistic regression, which both have a variable set at 0.77033. Comparing logistic regression to linear regression, logistic regression performs slightly better in terms of MAE, RMSE, and MSE. However, this marginal improvement is not sufficient to alter the outcome when predictions greater than 0.5 are classified as 1 and those smaller than 0.5 as 0. Ultimately, the prediction scores are the same between logistic regression and linear regression.
-
-
-
+In this assignment, I used three different models—linear regression, logistic regression, and random forest models—to train on the Titanic dataset and predict passenger survival in the test set. The results suggest that the random forest model delivers the best performance with a prediction score of 0.77751, enhancing accuracy by 0.00718 compared to the best linear regression and logistic regression, which both have a variable set at 0.77033. Comparing logistic regression to linear regression, logistic regression performs slightly better in terms of MAE, RMSE, MSE and prediction scare with 0.00239.This research shows that Random Forest model are more suitable on predict the survive on the titanic data set due to its ability to capture non-linear and complex relationships between variables.
 
 

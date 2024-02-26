@@ -336,12 +336,7 @@ model4_RMSE <- sqrt(mean((test_time -model4_pred)^2))
 model4_MAE <- mean(abs(test_time -model4_pred))
 
 #kaggle scale
-kaggle_scale <- c(0.76794, 0.76794, 0.77033, 0.77033)
-
-
-#The final result 
-# Kaggle scale
-kaggle_scale <- c(0.76794, 0.76794, 0.77033, 0.77033)
+kaggle_scale <- c(0.76794, 0.75385, 0.77033,0.77272)
 
 # The final result 
 The_final_table <- data.frame(
@@ -366,7 +361,10 @@ print(The_final_table)
 ########### 
 
 #constratined the model.
-Winning_model <- lm(Survived ~ Pclass + Sex_female + Age + SibSp + Embarked, data =TTD)
+Winning_model_1_lm<- lm(Survived ~ Pclass + Sex_female + Age + SibSp + Embarked, data =TTD)
+winning_Model_1_glm<- lm(Survived ~ Pclass + Sex_female + Age + SibSp + Embarked, data =TTD)
+winning_Model_2_lm <- lm(Survived ~ Pclass + Sex_female + Age + SibSp data =TTD)
+winning_Model_2_glm <- lm(Survived ~ Pclass + Sex_female + Age + SibSp, data =TTD)
 
 
 #import hte data test data set. 
@@ -503,7 +501,7 @@ test_data_ultra<- dummy_cols(test_data_set, select_columns = "Sex", remove_selec
 #generate the prediction 
 prediction <- predict(rf_model, newdata = test_data_ultra, type = "response")
 
-# transfer it into 0 and 1, because the regression tree are give 1 and 2 as output.
+# transfer it into 0 and 1, because the random forest are give 1 and 2 as output.
 bi_prediction <- as.integer(prediction) - 1
 
 #put the Binary prediction into the test data set.
