@@ -21,6 +21,7 @@ Although the differences are marginal, they are significant, with the Random For
 This report comprises three parts. In the first part, I perform data cleaning and evaluation. The second part involves constructing and evaluating the performance of linear and logistic regression models. Finally, in the third part, I will construct and optimize a random forest model.
 
 ## Part One: Data Cleaning and Evaluation
+
 ```{r setup, include=FALSE}
 
 rm( list = ls())
@@ -49,10 +50,6 @@ library(leaps)
 library(broom)
 library(fastDummies)
 library(car)
-
-#setting the saving addreess
-setwd("/Users/tie/Documents/GitHub/The-data-analysis-job--")
-
 ```
 
 The Titanic training data set including following 11 variable: 
@@ -71,18 +68,21 @@ The Titanic training data set including following 11 variable:
 
 To optimize the model's training efficacy, names, ticket numbers, and cabin numbers were omitted due to their insufficiency in providing meaningful patterns for the regression model. Specifically, cabin numbers were excluded because they are missing in 687 instances, indicating that 77% of the training data lack cabin numbers
 
-```{undefined include=FALSE}
+```{r include=FALSE}
+
+#setting the saving addreess
+setwd("/Users/tie/Documents/GitHub/The-data-analysis-job--")
+
 
 #loding the data
-  Titanic_train_raw <- read_csv("Titanic data/train.csv", 
+Titanic_train_raw <- read_csv("Titanic data/train.csv", 
                                 col_types = cols( Name = col_skip(), Ticket = col_skip(), 
                                                  Cabin = col_skip()))
 ```
 
  First, I checked for any NA (missing) values in the training dataset.
 ```{r echo=FALSE}
-#check the number of NA in the data set 
-print(colSums(is.na(Titanic_train_raw )))
+print(colSums(is.na(Titanic_train_raw)))
 ```
 
 
@@ -112,6 +112,7 @@ Furthermore, after filling in all the missing age values, I removed the 2 missin
 ```{r include=FALSE}
 #replace the missing value with the average 
 Titanic_train_raw$Age[is.na(Titanic_train_raw$Age)] <- The_average_age
+
 Titanic_train_without_age_gap <- Titanic_train_raw
 
 #delete the 2 line in the embarked 
@@ -177,10 +178,10 @@ legend("center", legend = c("MALE", "Female"), fill = c("black", "gray"))
 
 ```
 
-## Step Three: Choose The Variables
+Part two: Data Evaluation
 
 In order to select the optimal variables for constructing the linear regression model without risking over fitting, I will use the best subset selection and Ridge regression to explore all possible linear combinations of variables
-
+'
 
 First, I will use the best subset selection to search all possible combinations and compare their BIC values.
 
@@ -212,6 +213,7 @@ From the graph, we can see that the combination of Pclass, Age, SibSp, and sex_f
 
 
 Next, we determine the number of variables.
+
 ```{r echo=FALSE}
 
 par(mfrow=c(1,3))
@@ -235,6 +237,7 @@ points(m.cp, reg_summary$cp[m.cp], col = "red", cex = 2, pch = 20) # Highlight t
 Mallows' Cp (Cp) assesses a function similar to that of the BIC; it measures a model's performance by evaluating the trade-off between the model's complexity and its ability to fit the data closely. Similar to BIC, a lower Cp value suggests that the model best balances fitting the data and complexity. The Cp graph suggests that the optimal number of variables is 5.
 
 
+## Part Two: Linear Regression and Logistic Regression
 
 According to the best subset selection, I should choose the two group with the following variables. 
   
@@ -250,14 +253,12 @@ For The heteroscedasticity test for linear regression, I am using BP test.
   #crate a new matrix 
 x_1 <- TTD%>%
   dplyr::select(
-   Pclass, Age, SibSp, Sex_female
-  ) %>%
+   Pclass, Age, SibSp, Sex_female) %>%
   data.matrix()
 
 x_2 <- TTD%>%
   dplyr::select(
-     Pclass, Age, SibSp, Embarked, Sex_female
-  ) %>%
+     Pclass, Age, SibSp, Embarked, Sex_female) %>%
   data.matrix()
 
 
@@ -272,8 +273,8 @@ data_test_1_lm <- lm(live ~ . , data = data_V1)
 data_test_2_lm <- lm(live ~ ., data = data_V2)
 date_test_1_gm <- glm(live ~ Pclass + Sex_female + Age + SibSp, family = binomial, data = data_V1)
 date_test_2_gm <- glm(live ~ Pclass + Sex_female + Age + SibSp + Embarked, family = binomial, data = data_V2)
-bptest(data_test_1)
-bptest(data_test_2)
+bptest(data_test_1_lm)
+bptest(data_test_2_lm)
 ```
 
 Given that the p-values for the variable sets under the linear regression model exceed the 0.05 , we fail to reject the null hypothesis. We conclude that there is not enough statistically significant evidence to suggest heteroskedasticity exists in the dataset.
@@ -326,11 +327,11 @@ print(performence_table)
 Ridge regression applies a penalty to the size of coefficients to shrink them toward zero, particularly targeting less important predictors. notably, the coefficients for the variables "Sex_female" and "Pclass" remain relatively high in both OLS and Ridge regression, suggesting a strong relationship with the dependent variable. The coefficients for SibSp, Embarked, and Parch follow this trend. However, Ridge regression only shrinks the coefficients of two variables, "Age" and "Fare," towards zero. Therefore, it does not provide any new model suggestions.
 
 
-## Step Four: Model Comparison and Kaggle Scale
+## Model Comparison and Kaggle Scale
 
-In this step, the training dataset was divided into two segments: 90% of the data was allocated for training, while the remaining 10% served as the test set. The training dataset was used to train the models, which were then employed to predict the output for the test set. By comparing the predicted outcomes with the actual values in the test set, we could assess the accuracy of the model's predictions.
+In this step, the training dataset was divided into two segments: 90% of the data was allocated for training, while the remaining 10% served as the test set. The training dataset was used to train the models, which were then employed to predict the output for the test set. By comparing the predicted outcomes  between predicted and actual values were utilized to compute the Mean Squared Error (MSE), Root Mean Squared Error (RMSE), and Mean Absolute Error (MAE) to evaluate the prediction ability of the model.
 
-Furthermore, the discrepancies between predicted and actual values were utilized to compute the Mean Squared Error (MSE), Root Mean Squared Error (RMSE), and Mean Absolute Error (MAE). MSE and RMSE impose greater penalties for larger prediction errors, emphasizing the importance of minimizing such errors. Conversely, MAE focuses on the overall performance of the model, providing an average error measure without specific emphasis on large errors. By evaluating these metrics, we could gain insights into the predictive performance of both linear and logistic regression models.
+MSE and RMSE impose greater penalties for larger prediction errors, emphasizing the importance of minimizing such errors. Conversely, MAE focuses on the overall performance of the model, providing an average error measure without specific emphasis on large errors. By evaluating these metrics, we could gain insights into the predictive performance of both linear and logistic regression models.
 
 Additionally, the Kaggle prediction scale was integrated into the analysis to facilitate comparison and interpretation of the model's performance within a standardized framework.
 
@@ -407,10 +408,10 @@ print(The_final_table)
 
 ```
 
-The logistic regression model with variable set two (Pclass + Sex_female + Age + SibSp + Embarked) has the highest kaggle prediction scale with the longest MSE, RMSE and MAE.  
+The logistic regression model with variable set two (Pclass + Sex_female + Age + SibSp + Embarked) has the highest kaggle prediction scale with the smallest MSE, RMSE and MAE.  
 
 
-## Part 3: random forest model
+## Part Three: Random Forest Model
 
 ```{r include=FALSE}
 
@@ -486,11 +487,15 @@ Titanic_train_cleaned <- na.omit(Titanic_train_without_age_gap)
 #we got the final data
 TTD <- dummy_cols(Titanic_train_cleaned, select_columns = "Sex", remove_selected_columns = TRUE)
 
+
+
 ```
 
-  "To construct the best Random Forest model, determining optimal values for `ntree()` and `mtry()` is crucial. `ntree()` defines the number of trees in the forest, influencing the model's stability, while `mtry()` dictates the number of variables considered at each decision point, balancing model bias and variance for better robustness.
+In construction optimal Random Forest model, it is essenrtial to identify teh best value for both `ntree()` and `mtry()`.`ntree()` defines the number of trees in the forest, influencing the model's stability, while `mtry()` dictates the number of variables considered at each decision point, balancing model bias and variance for better robustness. 
 
-To find the optimal `mtry()`, typically set around one-third of the total features (in this case, between 3 and 4 for 10 variables), a 10-fold cross-validation is employed. This method partitions the dataset into 10 folds, using 9 for training and 1 for testing iteratively. By assessing performance across the entire dataset, it ensures the chosen `mtry()` value maximizes model performance efficiently.
+To determine the optimal `mtry()` value, I am using 10-fold cross-validation to examine the performance for values ranging from 1 to 10 and select the one with the highest accuracy. This approach divides the dataset into 10 segments, using 9 of these segments to train the data and one to evaluate the performance of different `mtry()` values.
+
+Compared to `mtry()`, the setting for `ntree()` is less critical. It is sufficient to select a sufficiently high number to stabilize the error rate. Thus, I have chosen to set ntree() to 10,000.
   
 ```{r echo=FALSE}
 
@@ -526,24 +531,26 @@ Then I constructed my Random Forest with 10,000 trees `ntree()`, set `mtry()` eq
 
 
 rf_model <- randomForest(Survived ~ ., data = TTD, 
-                         ntree = 10000,  #how many tree
-                         mtry = 4, #the optimal
-                         nodesize = 1, #1 for classficiation (die or live)
+                         ntree = 10000,  #how many 
+                         mtry = 4, #the optimal 
+                         nodesize = 1, #1 for classification (die or live)
                          importance = TRUE)
 print(rf_model)
-
-
 ```
-  Out of Bag error rate (OBB) is measurement of average performance of the forest, at 17.55% The Random Forest method constructs each individual tree by randomly selecting subsets from the entire dataset, a process called 'in-bag' data selection. To evaluate the performance of each individual tree, the algorithm uses the 'out-of-bag' data, which consists of all the data points that were not selected to construct each tree, to evaluate the accuracy of each tree.  Consequently, the OOB error rate offers an estimate of the average performance of the entire forest.
+ 
+The result suggest the Out of Bag error rate (OBB) at 17.5% and a prediction error bias towards survivors, with a prediction error of 10.4% for non-survivors and 29.4% for survivors. Moreover, with the prediction score is 0.77751 which is the higher than logistic model and linear regression.
+  
+The Out of Bag error rate (OBB) at 17.55%, means that 17.5% of the prediction made by the Random Forest on the out of bag samples are incorrect.
+  
+The confusion matrix shows that the Random Forest model accurately identified 492 non-survivors and 241 survivors. Prediction errors occurred in 57 cases incorrectly predicted as survivors and in 99 cases incorrectly predicted as non-survivors. The prediction error rates are approximately 10.38% for non-survivors and 29.4% for survivors. The discrepancy in prediction error rates may stem from replacing all missing values with the dataset's average age, particularly since the average age for the training dataset is higher than that of the survivors.
+  
 
-  The confusion matrix shows that the Random Forest correctly predicted 492 passengers who didn't survive and 241 who survived. However, it made errors on 57 individuals who the model predicted would survive but didn't, and 100 individuals who the model guessed wouldn't survive but did. The error rates are 10.4% for those who did not survive and 29.4% for those who survived. This indicates that this Random Forest model is better at identifying who won't survive than who wil 
-For the random forest model, the prediction score is 0.77751 which is the higher than logistic model and linear regression.
 
+## Conclusion
 
+In this assignment, I used three different models—linear regression, logistic regression, and random forest models—to train on the Titanic dataset and predict passenger survival in the test set. The results suggest that the random forest model delivers the best performance with a prediction score of 0.77751, enhancing accuracy by 0.00718 compared to the best linear regression and logistic regression, which both have a variable set at 0.77033. Comparing logistic regression to linear regression, logistic regression performs slightly better in terms of MAE, RMSE, MSE and prediction scare with 0.00239
 
+This research demonstrates that random forest models are more suited for predicting survival on the Titanic dataset due to their ability to capture non-linear and complex relationships between variables.
 
-## Conclstion:
-
-In this assignment, I used three different models—linear regression, logistic regression, and random forest models—to train on the Titanic dataset and predict passenger survival in the test set. The results suggest that the random forest model delivers the best performance with a prediction score of 0.77751, enhancing accuracy by 0.00718 compared to the best linear regression and logistic regression, which both have a variable set at 0.77033. Comparing logistic regression to linear regression, logistic regression performs slightly better in terms of MAE, RMSE, MSE and prediction scare with 0.00239.This research shows that Random Forest model are more suitable on predict the survive on the titanic data set due to its ability to capture non-linear and complex relationships between variables.
-
+However, due to the author's limited knowledge and training in statistics, a bias towards non-survival outcomes related to age has been introduced to both the training and test dataset by using the average age to replace missing age values. This may potentially decrease the accuracy of model predictions due to bias.
 

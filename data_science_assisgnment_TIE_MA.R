@@ -1,3 +1,6 @@
+#Tie Ma
+#101310917
+
 
 #cleaning the environment.
 rm( list = ls())
